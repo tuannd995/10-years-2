@@ -1,62 +1,61 @@
 import Hero from "@/components/Hero";
 import Gallery from "@/components/Gallery";
+import StackedEntry from "@/components/StackedEntry";
 import StackedSection from "@/components/StackedSection";
 import FounderMessages from "@/components/FounderMessages";
 import EndingSection from "@/components/EndingSection";
 import ScrollEngine from "@/lib/ScrollEngine";
 
 /**
- * Scroll architecture — two phases:
+ * Scroll architecture — three phases:
  *
- * ┌─ Phase 1 · Horizontal ─────────────────────────────────────────────────┐
- * │  #h-track  (GSAP spacer — provides scroll height for horizontal anim)  │
- * │  └── #h-container  (display:flex, pinned + translateX by ScrollTrigger)│
- * │       ├── Hero     100vw                                                │
- * │       └── Gallery  250vw                                                │
+ * ┌─ Phase 1 · Horizontal (400vw) ─────────────────────────────────────────┐
+ * │  #h-track  (GSAP spacer providing 300vw of scroll height)               │
+ * │  └── #h-container  (pinned, translateX 0 → −300vw)                     │
+ * │       ├── Hero          100vw                                            │
+ * │       ├── Gallery       200vw  cinematic image strip                    │
+ * │       └── StackedEntry  100vw  poster film strip — end of horizontal    │
  * └─────────────────────────────────────────────────────────────────────────┘
  *
  * ┌─ Phase 2 · Vertical year stories ──────────────────────────────────────┐
- * │  StackedSection  (normal document flow, after h-track)                  │
- * │  └── per year: timeline-view → poster zoom → poster scroll → highlights│
+ * │  #stacked-section  (normal document flow after h-track)                 │
+ * │  Per year: timeline-view (poster zoom → poster scroll) → highlights     │
  * └─────────────────────────────────────────────────────────────────────────┘
  *
  * ┌─ Phase 3 · Outro ───────────────────────────────────────────────────────┐
- * │  FounderMessages + EndingSection                                        │
+ * │  FounderMessages (3 × full-screen) + EndingSection                      │
  * └─────────────────────────────────────────────────────────────────────────┘
  */
 export default function Home() {
   return (
     <main id="main" className="relative bg-[#0A0A0A]">
 
-      {/* ── Phase 1: Horizontal panels ─────────────────────────────────── */}
-      {/*
-        #h-track is the scroll spacer. GSAP will pin #h-container to the top
-        of the viewport and convert vertical scroll into horizontal translateX.
-        Height is set by ScrollTrigger dynamically based on h-container width.
-      */}
+      {/* ── Phase 1: Horizontal panels (total 400vw) ───────────────────── */}
       <div id="h-track">
-        {/*
-          #h-container total width = 100vw (hero) + 250vw (gallery) = 350vw.
-          GSAP translateX range: 0 → −250vw.
-        */}
         <div
           id="h-container"
           className="flex will-change-transform"
-          style={{ width: "350vw" }}
+          style={{ width: "400vw" }}
         >
-          <Hero />
-          <Gallery />
+          <Hero />          {/* 100vw */}
+          <Gallery />       {/* 200vw */}
+          <StackedEntry />  {/* 100vw — last panel, visible when horizontal ends */}
         </div>
       </div>
 
-      {/* ── Phase 2: Stacked year stories (vertical) ───────────────────── */}
+      {/* ── Phase 2: Stacked year stories (vertical scroll) ────────────── */}
+      {/*
+        Sits immediately below h-track in document flow.
+        GSAP pins each year's timeline-view → poster zoom → poster scroll.
+        After poster exits, year highlights scroll normally.
+      */}
       <StackedSection />
 
       {/* ── Phase 3: Outro ─────────────────────────────────────────────── */}
       <FounderMessages />
       <EndingSection />
 
-      {/* Client-only GSAP engine — renders nothing, wires all animations */}
+      {/* Client-only GSAP animation engine */}
       <ScrollEngine />
     </main>
   );

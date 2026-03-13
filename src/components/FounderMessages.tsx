@@ -39,7 +39,7 @@ export default function FounderMessages() {
             </p>
 
             {/* Author */}
-            <div className="mt-10 flex items-center gap-4">
+            <div className="founder-author mt-10 flex items-center gap-4">
               <div className="relative h-12 w-12 overflow-hidden rounded-full ring-1 ring-[#C9A96E]/30">
                 <Image
                   src={msg.avatar}

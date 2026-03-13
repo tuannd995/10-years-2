@@ -6,55 +6,49 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { YEARS } from "@/data/years";
 
 /**
- * ScrollEngine — client-only component that wires all GSAP animations.
- * Renders nothing; purely behavioural.
+ * ScrollEngine — client-only GSAP animation orchestrator.
+ * Renders nothing to the DOM.
  *
- * Animation phases:
- *  1. Hero entrance  — stagger text in on load
- *  2. Horizontal     — #h-track pins #h-container; scroll → translateX
- *  3. Poster zoom    — each year's poster scales 1 → fullscreen width
- *  4. Poster scroll  — fullscreen poster translates up, revealing year content
+ * ┌─ Phase 1 · Horizontal ──────────────────────────────────────────────────┐
+ * │  Pin #h-track; translateX #h-container from 0 → −300vw                  │
+ * │  (Hero 100vw + Gallery 200vw + StackedEntry 100vw = 400vw total;         │
+ * │   scroll distance = 400vw − 100vw = 300vw)                              │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─ Phase 2 · Per-year poster scenes ─────────────────────────────────────┐
+ * │  For each year (2016-2025):                                             │
+ * │  a) Pin #timeline-view-YEAR                                             │
+ * │  b) Scale #poster-YEAR: natural size → viewport width (zoom to fill)   │
+ * │  c) TranslateY #poster-YEAR: 0 → −scaledHeight (scroll through poster) │
+ * │  d) Unpin → YearContent highlights scroll normally                      │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─ Phase 3 · Content + Outro ────────────────────────────────────────────┐
+ * │  Staggered entrance animations for year highlights and founder messages │
+ * └─────────────────────────────────────────────────────────────────────────┘
  */
 export default function ScrollEngine() {
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
 
-    // Collect all triggers so we can kill them on unmount
-    const triggers: ScrollTrigger[] = [];
+    // ── 1. Hero entrance ─────────────────────────────────────────────────
+    gsap.timeline({ delay: 0.25 })
+      .from(".hero-eyebrow",               { opacity: 0, y: 18, duration: 0.7, ease: "power2.out" })
+      .from(".hero-title span:first-child", { opacity: 0, y: 44, duration: 0.9, ease: "power3.out" }, "-=0.30")
+      .from(".hero-title span:last-child",  { opacity: 0, y: 44, duration: 0.9, ease: "power3.out" }, "-=0.62")
+      .from(".hero-sub",                    { opacity: 0, y: 18, duration: 0.7, ease: "power2.out" }, "-=0.40")
+      .from(".hero-cta",                    { opacity: 0, y: 12, duration: 0.6, ease: "power2.out" }, "-=0.30");
 
-    // ── 1. Hero entrance ────────────────────────────────────────────────
-    const heroTl = gsap.timeline({ delay: 0.2 });
-    heroTl
-      .from(".hero-eyebrow", { opacity: 0, y: 16, duration: 0.7, ease: "power2.out" })
-      .from(
-        ".hero-title span:first-child",
-        { opacity: 0, y: 40, duration: 0.9, ease: "power3.out" },
-        "-=0.3"
-      )
-      .from(
-        ".hero-title span:last-child",
-        { opacity: 0, y: 40, duration: 0.9, ease: "power3.out" },
-        "-=0.65"
-      )
-      .from(
-        ".hero-sub",
-        { opacity: 0, y: 16, duration: 0.7, ease: "power2.out" },
-        "-=0.4"
-      )
-      .from(
-        ".hero-cta",
-        { opacity: 0, y: 12, duration: 0.6, ease: "power2.out" },
-        "-=0.3"
-      );
-
-    // ── 2. Horizontal scroll ─────────────────────────────────────────────
+    // ── 2. Phase 1 — Horizontal scroll ───────────────────────────────────
     const hContainer = document.querySelector<HTMLElement>("#h-container");
-    const hTrack = document.querySelector<HTMLElement>("#h-track");
+    const hTrack     = document.querySelector<HTMLElement>("#h-track");
 
     if (hContainer && hTrack) {
+      // 400vw container − 100vw viewport = 300vw scroll distance
       const getScrollDist = () => hContainer.scrollWidth - window.innerWidth;
 
-      const hTrigger = ScrollTrigger.create({
+      ScrollTrigger.create({
+        id: "horizontal",
         trigger: hTrack,
         pin: true,
         start: "top top",
@@ -66,114 +60,140 @@ export default function ScrollEngine() {
           ease: "none",
         }),
       });
-
-      triggers.push(hTrigger);
     }
 
-    // ── 3 & 4. Per-year poster zoom + scroll ─────────────────────────────
+    // ── 3. Phase 2 — Per-year poster zoom + scroll ────────────────────────
     YEARS.forEach((yearData) => {
-      const timelineView = document.querySelector<HTMLElement>(
-        `#timeline-view-${yearData.year}`
-      );
-      const posterCard = document.querySelector<HTMLElement>(
-        `#poster-${yearData.year}`
-      );
-
+      const timelineView = document.querySelector<HTMLElement>(`#timeline-view-${yearData.year}`);
+      const posterCard   = document.querySelector<HTMLElement>(`#poster-${yearData.year}`);
       if (!timelineView || !posterCard) return;
 
-      /**
-       * Read poster's natural (unscaled) dimensions.
-       * transformOrigin is "center center" so scaling keeps it centred.
+      /*
+       * CRITICAL: measure natural (un-transformed) dimensions ONCE before
+       * any GSAP tweens run. getBoundingClientRect() returns the *scaled*
+       * size after transforms, so we must read offsetWidth/offsetHeight here.
        */
-      const getScale = () => {
-        // Reset any existing transform so we measure the natural size
-        const rect = posterCard.getBoundingClientRect();
-        return window.innerWidth / rect.width;
-      };
+      const naturalW = posterCard.offsetWidth;
+      const naturalH = posterCard.offsetHeight;
 
+      // Scale factor that makes poster.width === viewport.width
+      const getScale = () => window.innerWidth / naturalW;
+
+      /*
+       * After zoom (scale applied), poster height in screen pixels:
+       *   scaledH = naturalH × scale
+       *
+       * We translateY by −scaledH so the poster fully exits the TOP of the
+       * viewport, revealing year content below.
+       *
+       * We stop at −(scaledH − viewportH) to keep the bottom of the poster
+       * at the bottom of the viewport before the final exit, giving a smooth
+       * "scrolling through the image" feel. Then we continue up by another
+       * viewportH to fully exit.
+       */
       const getTranslateY = () => {
         const scale = getScale();
-        const naturalHeight = posterCard.getBoundingClientRect().height;
-        const scaledHeight = naturalHeight * scale;
-        // After zoom, poster is taller than viewport. Scroll it up until
-        // it fully exits the top of the screen.
-        return -(scaledHeight);
+        const scaledH = naturalH * scale;
+        return -(scaledH); // exit fully above viewport
       };
 
-      /**
-       * Scroll budget:
-       *   - Phase A (zoom):     100vh of scroll
-       *   - Phase B (translateY): proportional to poster overflow
+      /*
+       * Total scroll budget for the pin:
+       *   - Zoom phase (A):  1.0 × viewportH
+       *   - Scroll phase (B): scaled poster height (poster exits top)
+       * Total ≈ viewportH + scaledH
        */
+      const getTotalPinLength = () => {
+        const scaledH = naturalH * getScale();
+        return window.innerHeight + scaledH;
+      };
+
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: timelineView,
           start: "top top",
-          end: () => {
-            const scale = getScale();
-            const naturalHeight = posterCard.getBoundingClientRect().height;
-            const scaledHeight = naturalHeight * scale;
-            // enough scroll to zoom (1×vh) + scroll full poster (scaledH)
-            return `+=${window.innerHeight + scaledHeight}`;
-          },
+          end: () => `+=${getTotalPinLength()}`,
           pin: true,
+          pinSpacing: true,
           scrub: 1,
           invalidateOnRefresh: true,
-          onEnter: () => {
-            // Update the active year in the timeline bar (via CSS class)
-            document
-              .querySelectorAll("[data-year-active]")
-              .forEach((el) => el.removeAttribute("data-year-active"));
-            timelineView.setAttribute("data-year-active", "true");
-          },
+          // Update timeline bar active dot
+          onEnter:     () => window.dispatchEvent(new CustomEvent("year-change", { detail: { year: yearData.year } })),
+          onEnterBack: () => window.dispatchEvent(new CustomEvent("year-change", { detail: { year: yearData.year } })),
         },
       });
 
-      // Phase A: scale poster to fill viewport width
+      // Phase A — zoom: scale poster until its width fills the viewport
       tl.to(posterCard, {
         scale: () => getScale(),
         ease: "none",
         duration: 1,
       });
 
-      // Phase B: translate poster upward (simulate scrolling through the poster)
-      tl.to(
-        posterCard,
-        {
-          y: () => getTranslateY(),
-          ease: "none",
-          duration: 1.5,
-        },
-        // start Phase B slightly before Phase A ends for smoother feel
-        "-=0.1"
-      );
-
-      triggers.push(...(ScrollTrigger.getAll().slice(-1)));
-    });
-
-    // ── Gallery item entrance (fade + rise as they come into view) ───────
-    document.querySelectorAll<HTMLElement>(".gallery-item").forEach((item) => {
-      const st = ScrollTrigger.create({
-        trigger: item,
-        start: "top 90%",
-        animation: gsap.from(item, {
-          opacity: 0,
-          y: 30,
-          duration: 0.8,
-          ease: "power2.out",
-        }),
+      // Phase B — scroll: translate poster upward; year content reveals below
+      tl.to(posterCard, {
+        y: () => getTranslateY(),
+        ease: "none",
+        duration: 1.5,
       });
-      triggers.push(st);
     });
 
-    // Refresh after a brief delay to let Next.js finish rendering images
-    const rafId = setTimeout(() => ScrollTrigger.refresh(), 400);
+    // ── 4. Year highlight entrance animations ─────────────────────────────
+    document.querySelectorAll<HTMLElement>(".year-highlight").forEach((el) => {
+      const inner = el.querySelector<HTMLElement>(".relative.z-10");
+      if (!inner) return;
+      gsap.from(inner, {
+        opacity: 0,
+        y: 36,
+        duration: 0.85,
+        ease: "power2.out",
+        scrollTrigger: {
+          trigger: el,
+          start: "top 72%",
+          toggleActions: "play none none reverse",
+        },
+      });
+    });
+
+    // ── 5. Founder messages entrance ──────────────────────────────────────
+    document.querySelectorAll<HTMLElement>(".founder-message").forEach((el) => {
+      const quote  = el.querySelector(".founder-quote");
+      const body   = el.querySelector(".founder-body");
+      const author = el.querySelector(".founder-author");
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: el,
+          start: "top 65%",
+          toggleActions: "play none none reverse",
+        },
+      });
+
+      if (quote)  tl.from(quote,  { opacity: 0, y: 32, duration: 0.9, ease: "power3.out" });
+      if (body)   tl.from(body,   { opacity: 0, y: 20, duration: 0.75, ease: "power2.out" }, "-=0.40");
+      if (author) tl.from(author, { opacity: 0, y: 14, duration: 0.65, ease: "power2.out" }, "-=0.30");
+    });
+
+    // ── 6. Ending section entrance ────────────────────────────────────────
+    const endTitle = document.querySelectorAll(".ending-title");
+    if (endTitle.length) {
+      gsap.from(endTitle, {
+        opacity: 0,
+        y: 40,
+        stagger: 0.15,
+        duration: 1,
+        ease: "power3.out",
+        scrollTrigger: { trigger: "#ending", start: "top 70%" },
+      });
+    }
+
+    // Allow images to load before first refresh
+    const timer = setTimeout(() => ScrollTrigger.refresh(), 600);
 
     return () => {
-      clearTimeout(rafId);
-      heroTl.kill();
-      triggers.forEach((t) => t.kill());
+      clearTimeout(timer);
       ScrollTrigger.getAll().forEach((t) => t.kill());
+      gsap.globalTimeline.clear();
     };
   }, []);
 
