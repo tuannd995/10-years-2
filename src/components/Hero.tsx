@@ -4,64 +4,66 @@ export default function Hero() {
   return (
     <section
       id="hero"
-      className="hero-panel relative flex h-screen w-screen shrink-0 flex-col items-center justify-center overflow-hidden bg-[#0A0A0A]"
+      className="hero-panel relative flex h-screen w-screen shrink-0 flex-col items-center justify-center overflow-hidden bg-[#EEF2F8]"
     >
-      {/* Background radial glow */}
+      {/* Subtle radial gradient */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 80% 60% at 50% 50%, #1a1208 0%, #0a0a0a 70%)",
+            "radial-gradient(ellipse 75% 55% at 50% 45%, #dbe8f8 0%, #eef2f8 65%)",
         }}
       />
 
-      {/* Grain overlay */}
+      {/* Decorative grid lines */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.04]"
+        className="pointer-events-none absolute inset-0 opacity-[0.03]"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
+          backgroundImage:
+            "linear-gradient(#1B5BC4 1px, transparent 1px), linear-gradient(90deg, #1B5BC4 1px, transparent 1px)",
+          backgroundSize: "80px 80px",
         }}
       />
 
-      {/* Top-left year range */}
+      {/* Top-left breadcrumb */}
       <div className="absolute left-10 top-10 flex items-center gap-3">
-        <span className="h-px w-12 bg-[#C9A96E]" />
-        <span className="font-mono text-xs tracking-[0.3em] text-[#C9A96E]">
+        <span className="h-px w-10 bg-[#1B5BC4]" />
+        <span className="font-mono text-[10px] tracking-[0.35em] text-[#1B5BC4] uppercase">
           2016 — 2025
         </span>
       </div>
 
-      {/* Main content — visible by default, GSAP adds entrance animation */}
+      {/* Main content */}
       <div className="hero-content relative z-10 flex flex-col items-center text-center">
-        <p className="hero-eyebrow mb-6 font-mono text-xs tracking-[0.5em] text-[#C9A96E] uppercase">
+        <p className="hero-eyebrow mb-5 font-mono text-[10px] tracking-[0.5em] text-[#1B5BC4] uppercase">
           Ten Years of Building
         </p>
 
         <h1 className="hero-title leading-none">
-          <span className="block font-serif text-[clamp(3.5rem,10vw,10rem)] font-light tracking-tight text-white">
+          <span className="block font-serif text-[clamp(3.5rem,10vw,10rem)] font-light tracking-tight text-[#1A2544]">
             A Decade
           </span>
-          <span className="block font-serif text-[clamp(3.5rem,10vw,10rem)] font-light italic tracking-tight text-[#C9A96E]">
+          <span className="block font-serif text-[clamp(3.5rem,10vw,10rem)] font-light italic tracking-tight text-[#1B5BC4]">
             Remembered.
           </span>
         </h1>
 
-        <p className="hero-sub mt-8 max-w-md text-base leading-relaxed text-white/50">
+        <p className="hero-sub mt-8 max-w-md text-base leading-relaxed text-[#637196]">
           A cinematic journey through ten years of craft, community, and
           relentless progress.
         </p>
 
-        <div className="hero-cta mt-16 flex flex-col items-center gap-3">
-          <span className="font-mono text-[10px] tracking-[0.4em] text-white/30 uppercase">
+        <div className="hero-cta mt-14 flex flex-col items-center gap-2">
+          <span className="font-mono text-[10px] tracking-[0.4em] text-[#1B5BC4]/50 uppercase">
             Scroll to explore
           </span>
-          <div className="scroll-arrow h-12 w-px bg-linear-to-b from-white/30 to-transparent" />
+          <div className="scroll-arrow h-12 w-px bg-linear-to-b from-[#1B5BC4]/40 to-transparent" />
         </div>
       </div>
 
       {/* Bottom-right stamp */}
-      <div className="absolute bottom-10 right-10 text-right">
-        <p className="font-mono text-[10px] tracking-[0.3em] text-white/20 uppercase">
+      <div className="absolute bottom-10 right-10">
+        <p className="font-mono text-[10px] tracking-[0.3em] text-[#1A2544]/20 uppercase">
           Est. 2016
         </p>
       </div>

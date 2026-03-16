@@ -5,6 +5,8 @@ import StackedSection from "@/components/StackedSection";
 import FounderMessages from "@/components/FounderMessages";
 import EndingSection from "@/components/EndingSection";
 import ScrollEngine from "@/lib/ScrollEngine";
+import SmoothScroll from "@/components/SmoothScroll";
+import NavControls from "@/components/NavControls";
 
 /**
  * Scroll architecture — three phases:
@@ -55,8 +57,10 @@ export default function Home() {
       <FounderMessages />
       <EndingSection />
 
-      {/* Client-only GSAP animation engine */}
+      {/* Client-only GSAP animation engine + Lenis smooth scroll */}
       <ScrollEngine />
+      <SmoothScroll />
+      <NavControls />
     </main>
   );
 }

@@ -1,127 +1,64 @@
 "use client";
 
-import Image from "next/image";
-import { YEARS } from "@/data/years";
-
-/**
- * StackedEntry — the 3rd and final horizontal panel (100vw).
- *
- * Visible when horizontal scroll completes. Shows the complete poster
- * film strip of all 10 years, with year 2016 largest and leading the
- * visual hierarchy. Acts as a "chapter title card" bridging Phase 1
- * (horizontal) and Phase 2 (vertical year stories).
- */
 export default function StackedEntry() {
   return (
     <section
       id="stacked-entry"
-      className="relative flex h-screen w-screen shrink-0 flex-col items-center justify-center overflow-hidden bg-[#0A0A0A]"
+      className="relative flex h-screen w-screen shrink-0 flex-col items-center justify-center overflow-hidden bg-[#EEF2F8]"
     >
-      {/* Radial glow */}
+      {/* Subtle gradient */}
       <div
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 60% 50% at 50% 60%, #120f08 0%, #0a0a0a 65%)",
+            "radial-gradient(ellipse 60% 50% at 50% 55%, #dce9f7 0%, #eef2f8 65%)",
         }}
       />
 
-      {/* Section label */}
+      {/* Chapter label */}
       <div className="absolute left-10 top-10 flex items-center gap-3">
-        <span className="h-px w-8 bg-[#C9A96E]" />
-        <span className="font-mono text-xs tracking-[0.3em] text-[#C9A96E] uppercase">
-          A Decade in Stories
+        <span className="h-px w-8 bg-[#1B5BC4]" />
+        <span className="font-mono text-[10px] tracking-[0.35em] text-[#1B5BC4] uppercase">
+          Chapter II
+        </span>
+      </div>
+
+      {/* Big background number */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center select-none">
+        <span
+          className="font-serif font-light leading-none text-[#1B5BC4]"
+          style={{ fontSize: "clamp(12rem,35vw,28rem)", opacity: 0.04 }}
+        >
+          10
         </span>
       </div>
 
       {/* Heading */}
-      <div className="relative z-10 mb-10 flex flex-col items-center text-center">
-        <h2 className="font-serif text-[clamp(2.2rem,5vw,4.5rem)] font-light leading-tight text-white">
+      <div className="relative z-10 flex flex-col items-center text-center">
+        <p className="mb-6 font-mono text-[10px] tracking-[0.5em] text-[#1B5BC4] uppercase">
+          2016 — 2025
+        </p>
+        <h2 className="font-serif text-[clamp(2.5rem,6vw,5.5rem)] font-light leading-tight text-[#1A2544]">
           Ten Years.
         </h2>
-        <h2 className="font-serif text-[clamp(2.2rem,5vw,4.5rem)] font-light italic leading-tight text-[#C9A96E]">
+        <h2 className="font-serif text-[clamp(2.5rem,6vw,5.5rem)] font-light italic leading-tight text-[#1B5BC4]">
           One Story.
         </h2>
-        <p className="mt-4 font-mono text-[10px] tracking-[0.4em] text-white/30 uppercase">
-          2016 — 2025
+        <p className="mt-8 max-w-sm text-sm leading-relaxed text-[#637196]">
+          Scroll to relive a decade — one year at a time.
         </p>
       </div>
 
-      {/* ── Poster film strip ─────────────────────────────────────────── */}
-      {/*
-        10 year posters laid out horizontally.
-        First year (2016) is tallest and most prominent — it will be the
-        first poster zoomed in StackedSection Phase 2.
-        Scale decreases with each subsequent year for a film-strip depth effect.
-      */}
-      <div className="relative z-10 flex items-end justify-center gap-[6px] px-12">
-        {YEARS.map((y, i) => {
-          // Taper: 2016 (i=0) is largest, each subsequent year is slightly smaller
-          const scale = Math.max(0.42, 1 - i * 0.063);
-          const opacity = Math.max(0.28, 1 - i * 0.072);
-          const w = Math.round(scale * 108);
-          const h = Math.round(scale * 162); // 2:3 portrait ratio
-
-          return (
-            <div
-              key={y.year}
-              className="relative shrink-0 overflow-hidden"
-              style={{
-                width: w,
-                height: h,
-                opacity,
-                // Subtle bottom-alignment creates a "rising" visual rhythm
-                marginBottom: `${i * 2}px`,
-              }}
-            >
-              <Image
-                src={y.posterImage}
-                alt={String(y.year)}
-                fill
-                sizes={`${w}px`}
-                className="object-cover"
-              />
-
-              {/* Vignette */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/10" />
-
-              {/* Year label */}
-              <p className="absolute bottom-1.5 left-0 right-0 text-center font-mono text-[7px] tracking-widest text-white/50">
-                {y.year}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Timeline dots row */}
-      <div className="relative z-10 mt-6 flex items-center gap-[10px]">
-        {YEARS.map((y, i) => (
-          <div
-            key={y.year}
-            className="rounded-full transition-all"
-            style={{
-              width: i === 0 ? 8 : 5,
-              height: i === 0 ? 8 : 5,
-              backgroundColor:
-                i === 0 ? y.color : "rgba(255,255,255,0.18)",
-              boxShadow: i === 0 ? `0 0 10px ${y.color}99` : "none",
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Scroll down cue */}
+      {/* Scroll cue */}
       <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-        <span className="font-mono text-[9px] tracking-[0.45em] text-white/20 uppercase">
-          Scroll to begin
+        <span className="font-mono text-[9px] tracking-[0.45em] text-[#1B5BC4]/40 uppercase">
+          Begin
         </span>
-        <div className="h-10 w-px bg-linear-to-b from-white/25 to-transparent" />
+        <div className="h-10 w-px bg-linear-to-b from-[#1B5BC4]/40 to-transparent" />
       </div>
 
-      {/* Right edge stamp */}
-      <div className="absolute right-10 bottom-10">
-        <p className="font-mono text-[9px] tracking-[0.3em] text-white/10 uppercase">
+      <div className="absolute bottom-10 right-10">
+        <p className="font-mono text-[9px] tracking-[0.3em] text-[#1A2544]/15 uppercase">
           Est. 2016
         </p>
       </div>

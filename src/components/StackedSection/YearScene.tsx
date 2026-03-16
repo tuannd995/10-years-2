@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { YearData } from "@/data/years";
+import { YearData, YEARS } from "@/data/years";
 import YearContent from "./YearContent";
 
 interface YearSceneProps {
@@ -10,18 +10,31 @@ interface YearSceneProps {
 }
 
 /**
- * YearScene — one complete year in Phase 2.
+ * YearScene — one complete year block.
  *
- * DOM structure:
- *   #year-scene-YEAR
- *     #timeline-view-YEAR   ← GSAP pins this; poster zooms here
- *       #poster-YEAR        ← GSAP scales (1 → fullscreen) then translateY
- *     #content-YEAR         ← revealed as poster exits top
+ * Poster List View (h-screen, overflow:hidden = "gallery wall window"):
+ *   - Strip of all 10 poster cards, horizontally arranged.
+ *   - Active poster has white frame + shadow (poster-frame class).
+ *   - GSAP animates:
+ *       A. strip.x  → slides active poster from right-of-center → center
+ *       B. poster.scale + poster.y → zooms up, top aligns with viewport top
+ *       C. poster.y → scrolls poster upward until exits top
  *
- * IMPORTANT: timeline-view must NOT have overflow-hidden because the poster
- * grows beyond its bounds during the zoom phase.
+ * Year Content (normal flow below):
+ *   - Revealed after poster exits top.
  */
 export default function YearScene({ data, index }: YearSceneProps) {
+  /**
+   * Poster card CSS dimensions (NOT including frame box-shadow — box-shadow
+   * doesn't affect offsetWidth, so GSAP measurements remain accurate).
+   *
+   * The "frame" is applied via CSS class .poster-frame (see globals.css):
+   *   box-shadow: 0 0 0 8px #fff, 0 0 0 9px rgba(0,0,0,0.06), 0 20px 60px ...
+   */
+  const POSTER_W = 300; // px
+  const POSTER_H = 450; // px — 2:3 portrait ratio
+  const POSTER_GAP = 56; // px gap between cards
+
   return (
     <div
       id={`year-scene-${data.year}`}
@@ -29,87 +42,135 @@ export default function YearScene({ data, index }: YearSceneProps) {
       data-year={data.year}
       data-index={index}
     >
-      {/* ── Timeline viewport ────────────────────────────────────────────── */}
+      {/* ── Poster List View ──────────────────────────────────────────────── */}
       {/*
-        No overflow-hidden here! The poster card scales beyond these bounds.
-        GSAP will pin this section while running the poster zoom + scroll.
+        overflow: hidden creates the "gallery wall window".
+        The strip extends far beyond viewport edges; only posters near the
+        centre are visible, giving the cinematic film-reel effect.
+        NO overflow-hidden needed for the zoom direction (poster grows upward,
+        which is outside the top of this div — also clipped, which is OK
+        because container is pinned and we scroll the poster out of the top).
       */}
       <div
-        id={`timeline-view-${data.year}`}
-        className="timeline-view relative flex h-screen w-full items-center justify-center bg-[#0A0A0A]"
+        id={`poster-list-${data.year}`}
+        className="poster-list-view relative h-screen w-full overflow-hidden"
+        style={{ backgroundColor: "#F0EBE3" }}  /* warm cream "wall" */
       >
-        {/* Large ghosted year behind poster */}
+        {/* Subtle wall texture dots */}
         <div
-          className="pointer-events-none absolute inset-0 flex items-center justify-center select-none"
+          className="pointer-events-none absolute inset-0 opacity-[0.04]"
+          style={{
+            backgroundImage: "radial-gradient(circle, #8B7355 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+          }}
+        />
+
+        {/* Ghost year number */}
+        <div
+          className="year-ghost pointer-events-none absolute inset-0 flex items-center justify-center select-none"
           aria-hidden="true"
         >
           <span
-            className="font-mono text-[clamp(8rem,22vw,20rem)] font-black leading-none"
-            style={{ color: `${data.color}07` }}
+            className="font-serif font-light leading-none"
+            style={{
+              fontSize: "clamp(8rem,22vw,20rem)",
+              color: `${data.color}0A`,
+            }}
           >
             {data.year}
           </span>
         </div>
 
-        {/* Poster card — GSAP target for scale + translateY */}
+        {/* ── Poster strip ─────────────────────────────────────────────── */}
+        {/*
+          position:absolute; top:50% — GSAP sets yPercent:-50 and x.
+          The strip has no overflow constraint; clipping happens at the
+          poster-list-view level.
+        */}
         <div
-          id={`poster-${data.year}`}
-          className="poster-card relative overflow-hidden"
-          style={{
-            /*
-             * Natural size: approx 20vw wide × 30vw tall (2:3 portrait ratio).
-             * GSAP will scale this until width === 100vw.
-             * transformOrigin must stay "center center" so it expands evenly.
-             */
-            width: "clamp(140px, 20vw, 260px)",
-            height: "clamp(210px, 30vw, 390px)",
-            transformOrigin: "center center",
-            willChange: "transform",
-          }}
+          id={`poster-strip-${data.year}`}
+          className="poster-strip absolute top-1/2 flex items-stretch"
+          style={{ gap: POSTER_GAP }}
+          data-active-index={index}
+          data-poster-w={POSTER_W}
+          data-poster-h={POSTER_H}
+          data-poster-gap={POSTER_GAP}
         >
-          <Image
-            src={data.posterImage}
-            alt={`${data.year} — ${data.tagline}`}
-            fill
-            sizes="(max-width: 768px) 40vw, 260px"
-            className="object-cover"
-            priority={index === 0}
-          />
+          {YEARS.map((y, j) => {
+            const isActive = j === index;
+            const dist = Math.abs(j - index);
+            const isPast = j < index;
 
-          {/* Vignette */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/15" />
+            return (
+              <div
+                key={y.year}
+                id={isActive ? `poster-card-${data.year}` : undefined}
+                className={`poster-strip-item relative shrink-0 overflow-hidden${isActive ? " poster-frame" : ""}`}
+                style={{
+                  width: POSTER_W,
+                  height: POSTER_H,
+                  opacity: isActive ? 1 : Math.max(0.20, 0.70 - dist * 0.12),
+                  transformOrigin: "50% 0",      // ← zoom from TOP CENTER
+                  willChange: isActive ? "transform" : undefined,
+                  filter: isPast
+                    ? "grayscale(30%) brightness(0.92)"
+                    : !isActive
+                    ? "brightness(0.96)"
+                    : "none",
+                }}
+              >
+                <Image
+                  src={y.posterImage}
+                  alt={`${y.year} — ${y.tagline}`}
+                  fill
+                  sizes={`${POSTER_W}px`}
+                  className="object-cover"
+                  priority={isActive && index === 0}
+                />
 
-          {/* Year + tagline */}
-          <div className="absolute bottom-0 left-0 right-0 p-4">
-            <p
-              className="font-mono text-[9px] tracking-[0.35em] uppercase"
-              style={{ color: `${data.color}99` }}
-            >
-              {data.year}
-            </p>
-            <h2 className="mt-0.5 font-serif text-lg font-light leading-snug text-white">
-              {data.tagline}
-            </h2>
-          </div>
+                {/* Vignette */}
+                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-black/10" />
+
+                {/* Year + tagline */}
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <p
+                    className="font-mono text-[8px] tracking-[0.4em] uppercase"
+                    style={{ color: isActive ? `${y.color}dd` : "rgba(255,255,255,0.4)" }}
+                  >
+                    {y.year}
+                  </p>
+                  {isActive && (
+                    <h3 className="mt-0.5 font-serif text-lg font-light leading-snug text-white">
+                      {data.tagline}
+                    </h3>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Scroll hint */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-          <span className="font-mono text-[8px] tracking-[0.45em] text-white/18 uppercase">
-            Scroll
-          </span>
-          <div className="h-8 w-px bg-linear-to-b from-white/20 to-transparent" />
-        </div>
+        {/* Left/right edge fades — reinforce "window" effect */}
+        <div className="pointer-events-none absolute left-0 top-0 h-full w-32 bg-linear-to-r from-[#F0EBE3] to-transparent" />
+        <div className="pointer-events-none absolute right-0 top-0 h-full w-32 bg-linear-to-l from-[#F0EBE3] to-transparent" />
 
         {/* Year index — top right */}
-        <div className="absolute right-10 top-10">
-          <span className="font-mono text-xs text-white/15">
+        <div className="absolute right-10 top-10 z-10">
+          <span className="font-mono text-xs text-[#1A2544]/30">
             {String(index + 1).padStart(2, "0")} / 10
           </span>
         </div>
+
+        {/* Scroll hint — bottom center */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2">
+          <span className="font-mono text-[8px] tracking-[0.45em] text-[#1A2544]/30 uppercase">
+            Scroll
+          </span>
+          <div className="h-8 w-px bg-linear-to-b from-[#1A2544]/30 to-transparent" />
+        </div>
       </div>
 
-      {/* ── Year highlights ───────────────────────────────────────────────── */}
+      {/* ── Year content ─────────────────────────────────────────────────── */}
       <YearContent data={data} />
     </div>
   );

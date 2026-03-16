@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, JetBrains_Mono } from "next/font/google";
+import { Cormorant_Garamond, JetBrains_Mono, Inter } from "next/font/google";
 import "./globals.css";
+import Cursor from "@/components/Cursor";
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-serif",
@@ -14,6 +15,13 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
   subsets: ["latin"],
   weight: ["300", "400"],
+  display: "swap",
+});
+
+const inter = Inter({
+  variable: "--font-sans",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
   display: "swap",
 });
 
@@ -34,11 +42,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="bg-[#0A0A0A]">
+    <html lang="en" className="bg-[#EEF2F8]">
       <body
-        className={`${cormorant.variable} ${jetbrainsMono.variable} bg-[#0A0A0A] text-white antialiased`}
+        className={`${cormorant.variable} ${jetbrainsMono.variable} ${inter.variable} bg-[#EEF2F8] text-[#1A2544] antialiased`}
       >
         {children}
+        <Cursor />
       </body>
     </html>
   );
